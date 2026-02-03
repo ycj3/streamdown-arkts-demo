@@ -7,6 +7,7 @@ export type Block =
     | {
     id: number
     type: 'code'
+    lang?: string
     text: string
   }
 

@@ -1,12 +1,13 @@
 # streamdown-arkts-demo
 
-A minimal ArkTS demo inspired by Vercel streamdown.
+A streaming markdown renderer demo in ArkTS for HarmonyOS
 
-## Features
+## Markdown features
 
-- Streaming text rendering
-- Incremental block updates
-- ArkTS + TypeScript mixed architecture
+- [x] Paragraphs
+- [x] Code Block with triple backticks
+  - [x] copy code
+  - [ ] syntax highlight
 
 ## Run
 

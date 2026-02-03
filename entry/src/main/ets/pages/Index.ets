@@ -7,7 +7,15 @@ struct Index {
   private stream = createStreamDown()
 
   aboutToAppear() {
-    const text = 'Hello, this is a streaming markdown demo.\n\nIt feels like ChatGPT.'
+    // const text = 'Hello, this is a streaming markdown demo.\n\nIt feels like ChatGPT.'
+    const text = `
+Here is some code:
+\`\`\`
+const a = 1
+console.log(a)
+\`\`\`
+Streaming works!
+`
     let i = 0
 
     const timer = setInterval(() => {
