@@ -11,7 +11,13 @@ export type CodeBlock = {
   text: string
 }
 
-export type Block = ParagraphBlock | CodeBlock
+export type InlineCodeBlock = {
+  id: number
+  type: 'inlineCode'
+  text: string
+}
+
+export type Block = ParagraphBlock | CodeBlock | InlineCodeBlock
 
 export type BlockDiff =
   | { kind: 'append'; block: Block }

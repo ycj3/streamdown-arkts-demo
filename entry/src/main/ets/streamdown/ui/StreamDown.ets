@@ -1,5 +1,5 @@
 import { StreamDownController } from '../core/stream'
-import { Block, BlockDiff } from '../core/protocol'
+import { Block, BlockDiff, CodeBlock } from '../core/protocol'
 import { BlockView } from './BlockView'
 
 @Component

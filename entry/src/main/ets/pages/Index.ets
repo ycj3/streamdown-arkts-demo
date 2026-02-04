@@ -20,6 +20,7 @@ const factorial = (n: number): number => {
 const result = factorial(5);
 console.log("Result: " + result);
 \`\`\`
+You can also use \`inline code\` like this!
 Streaming works!
 `
     let i = 0

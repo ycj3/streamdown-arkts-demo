@@ -1,132 +1,284 @@
-import { Block, BlockDiff, CodeBlock } from "./protocol";
+import { Block, BlockDiff, CodeBlock, InlineCodeBlock } from "./protocol";
+import { handleIncompleteInlineCode } from "./utils/inline-code-handler";
+import { countSingleBackticks, isPartOfTripleBacktick } from "./utils/code-block-utils";
 
-enum Mode {
-  Paragraph,
-  FenceStart,    // After opening ```, collecting language
-  Code,          // Inside code block, collecting code
+/**
+ * Parser states for the markdown tokenizer.
+ * Each state represents the current parsing context.
+ */
+enum ParseMode {
+  /** Normal paragraph text */
+  Paragraph = 0,
+  /** After opening ```, collecting language identifier */
+  FenceStart = 1,
+  /** Inside fenced code block, collecting code content */
+  Code = 2,
+  /** Inside inline code with single backtick */
+  InlineCode = 3,
 }
 
+/**
+ * BlockReducer - A streaming markdown parser that processes characters incrementally.
+ * 
+ * Supports:
+ * - Paragraph blocks (default text)
+ * - Fenced code blocks (```lang\ncode\n```)
+ * - Inline code (`code`)
+ * 
+ * Design goals:
+ * - Incremental parsing: processes one character at a time
+ * - Immutable diffs: returns changes that can be applied to external state
+ * - Memory efficient: minimal object allocation per character
+ */
 export class BlockReducer {
+  /** All parsed blocks */
   private blocks: Block[] = [];
-  private current: Block | null = null;
-  private id = 0;
+  /** Currently active block being built */
+  private currentBlock: Block | null = null;
+  /** Auto-incrementing block ID */
+  private nextBlockId: number = 0;
 
-  private mode: Mode = Mode.Paragraph;
-  private backticks = 0;
-  private langBuffer = "";  // Buffer for collecting language identifier
+  /** Current parsing state */
+  private mode: ParseMode;
+  /** Number of consecutive backticks seen (1-3) */
+  private pendingBackticks: number = 0;
+  /** Buffer for collecting language identifier after ``` */
+  private languageBuffer: string = "";
 
-  push(token: string): BlockDiff[] {
+  /**
+   * Process a single character and return any state changes.
+   * 
+   * @param char - The input character to process
+   * @returns Array of diffs representing state changes (empty if no changes)
+   */
+  push(char: string): BlockDiff[] {
     const diffs: BlockDiff[] = [];
 
-    if (token === "`") {
-      this.backticks++;
-      if (this.backticks < 3) {
-        // Delay processing until we know if it's a code fence
-        return diffs;
-      }
-    } else {
-      // If not a backtick, flush any delayed backticks to the paragraph
-      if (this.backticks > 0 && this.backticks < 3) {
-        for (let i = 0; i < this.backticks; i++) {
-          this.appendToParagraph("`", diffs);
-        }
-      }
-      this.backticks = 0; // Reset backticks
-    }
-
-    if (this.backticks === 3) {
-      // Handle code fence
-      this.backticks = 0; // Reset backticks after detecting a fence
-      if (this.mode === Mode.Code || this.mode === Mode.FenceStart) {
-        // Close code block
-        this.mode = Mode.Paragraph;
-        this.current = null;
-        this.langBuffer = "";
-      } else {
-        // Open code block - switch to FenceStart mode to capture language
-        this.mode = Mode.FenceStart;
-        this.langBuffer = "";
-        this.current = {
-          id: this.id++,
-          type: "code",
-          text: "",
-        };
-        this.blocks.push(this.current);
-        diffs.push({ kind: "append", block: this.current });
+    // 1. Accumulate backticks to distinguish types (`, ``, ```)
+    if (char === "`") {
+      this.pendingBackticks++;
+      // Got 3 backticks - this is a code fence
+      if (this.pendingBackticks === 3) {
+        return this.handleCodeFence(diffs);
       }
       return diffs;
     }
 
-    if (this.mode === Mode.FenceStart) {
-      // Collecting language identifier
-      if (token === "\n") {
-        // End of language line, switch to Code mode
-        if (this.current && this.current.type === 'code' && this.langBuffer.trim()) {
-          (this.current as CodeBlock).lang = this.langBuffer.trim();
-          // Update the block with language info
-          diffs.push({
-            kind: "patch",
-            id: this.current.id,
-            block: { ...this.current },
-          });
-        }
-        this.mode = Mode.Code;
-        this.langBuffer = "";
-      } else {
-        // Collect language characters
-        this.langBuffer += token;
-      }
-    } else if (this.mode === Mode.Code) {
-      // Append to code block
-      this.appendToCode(token, diffs);
-    } else {
-      // Append to paragraph
-      this.appendToParagraph(token, diffs);
+    // 2. Flush pending backticks before processing the current non-backtick char
+    if (this.pendingBackticks > 0) {
+      this.flushPendingBackticks(diffs);
+    }
+
+    // 3. Normal character routing
+    switch (this.mode) {
+      case ParseMode.FenceStart:
+        this.handleFenceStart(char, diffs);
+        break;
+      case ParseMode.Code:
+        this.appendToCurrentBlock(char, diffs);
+        break;
+      case ParseMode.InlineCode:
+        this.handleInlineCode(char, diffs);
+        break;
+      default :
+        this.appendToParagraph(char, diffs);
     }
 
     return diffs;
   }
 
-  close() {
-    this.finishCurrent();
-  }
-  // ---------- helpers ----------
 
-  private finishCurrent() {
-    this.current = null;
-    this.backticks = 0;
-    this.langBuffer = "";
+  // ==================== Private: State Handlers ====================
+
+  /**
+   * Refined flush logic using countSingleBackticks logic.
+   */
+  private flushPendingBackticks(diffs: BlockDiff[]): void {
+    const count = this.pendingBackticks;
+    this.pendingBackticks = 0;
+
+    // Use current mode to decide what 1 or 2 backticks mean
+    if (count === 1) {
+      if (this.mode === ParseMode.Paragraph) {
+        // Toggle from Paragraph to InlineCode
+        this.startInlineCode(diffs);
+      } else if (this.mode === ParseMode.InlineCode) {
+        // Toggle from InlineCode back to Paragraph (Closing backtick)
+        this.closeCurrentBlock();
+      } else {
+        // Inside Code block, treat as literal text
+        this.appendToCurrentBlock("`", diffs);
+      }
+    } else if (count === 2) {
+      // Per Markdown rules, double backticks are often literal unless inside specific blocks
+      this.appendToCurrentBlock("``", diffs);
+    }
   }
 
-  private appendToParagraph(token: string, diffs: BlockDiff[]) {
-    if (!this.current || this.current.type !== "paragraph") {
-      this.current = {
-        id: this.id++,
-        type: "paragraph",
-        text: token,
-      };
-      this.blocks.push(this.current);
-      diffs.push({ kind: "append", block: this.current });
+  /**
+   * Switches between Paragraph and Code Block modes using ``` fence.
+   */
+  private handleCodeFence(diffs: BlockDiff[]): BlockDiff[] {
+    this.pendingBackticks = 0;
+
+    // If already in a code block (or language line), close it
+    if (this.mode === ParseMode.Code || this.mode === ParseMode.FenceStart) {
+      this.closeCurrentBlock();
     } else {
-      this.current.text += token;
-      diffs.push({
-        kind: "patch",
-        id: this.current.id,
-        block: { ...this.current },
-      });
+      // Start a new fenced code block
+      this.mode = ParseMode.FenceStart;
+      this.languageBuffer = "";
+      this.currentBlock = this.createBlock("code");
+      diffs.push({ kind: "append", block: this.currentBlock });
+    }
+    return diffs;
+  }
+
+  /**
+   * Processes the language string (e.g., ```typescript) until a newline is found.
+   */
+  private handleFenceStart(char: string, diffs: BlockDiff[]): void {
+    if (char === "\n") {
+      this.finalizeLanguage(diffs);
+      this.mode = ParseMode.Code;
+    } else {
+      this.languageBuffer += char;
     }
   }
 
-  private appendToCode(token: string, diffs: BlockDiff[]) {
-    if (!this.current || this.current.type !== "code") return;
 
-    if (token !== "`") {
-      this.current.text += token;
-      diffs.push({
-        kind: "patch",
-        id: this.current.id,
-        block: { ...this.current },
-      });
+  /**
+   * Handles content inside `inline code`.
+   */
+  private handleInlineCode(char: string, diffs: BlockDiff[]): void {
+    if (char === "`") {
+      // Closing backtick for inline code
+      this.closeCurrentBlock();
+    } else {
+      this.appendToCurrentBlock(char, diffs);
     }
+  }
+
+  /**
+   * Final repair using the handleIncompleteInlineCode logic.
+   */
+  close(): BlockDiff[] {
+    const diffs: BlockDiff[] = [];
+
+    // Check if we ended while in an unclosed InlineCode state
+    if (this.mode === ParseMode.InlineCode && this.currentBlock) {
+      // Integration of countSingleBackticks utility within the handler
+      const repairedText = handleIncompleteInlineCode(this.currentBlock.text);
+
+      if (repairedText !== this.currentBlock.text) {
+        this.currentBlock.text = repairedText;
+        this.emitPatch(diffs);
+      }
+    }
+
+    this.resetState();
+    return diffs;
+  }
+  // ==================== Private: Block Operations ====================
+
+  /**
+   * Create a new block with the next available ID.
+   */
+  private createBlock(type: "paragraph" | "code" | "inlineCode"): Block {
+    const block: Block = {
+      id: this.nextBlockId++,
+      type,
+      text: "",
+    } as Block;
+
+    this.blocks.push(block);
+    return block;
+  }
+
+  private startInlineCode(diffs: BlockDiff[]): void {
+    this.mode = ParseMode.InlineCode;
+    this.currentBlock = this.createBlock("inlineCode");
+    diffs.push({ kind: "append", block: this.currentBlock });
+  }
+
+  /**
+   * Append text to paragraph block, creating one if needed.
+   */
+  private appendToParagraph(text: string, diffs: BlockDiff[]): void {
+    if (!this.currentBlock || this.currentBlock.type !== "paragraph") {
+      this.currentBlock = this.createBlock("paragraph");
+      diffs.push({ kind: "append", block: this.currentBlock });
+    }
+
+    this.currentBlock.text += text;
+    this.emitPatch(diffs);
+  }
+
+  /**
+   * Append text to the current block (code or inline code).
+   */
+  private appendToCurrentBlock(text: string, diffs: BlockDiff[]): void {
+    if (!this.currentBlock) return;
+
+    this.currentBlock.text += text;
+    this.emitPatch(diffs);
+  }
+
+  /**
+   * Finalize language identifier for code blocks.
+   * Emits a patch with the updated language info.
+   */
+  private finalizeLanguage(diffs: BlockDiff[]): void {
+    if (!this.currentBlock || this.currentBlock.type !== "code") return;
+
+    const lang = this.languageBuffer.trim();
+    if (!lang) return;
+
+    (this.currentBlock as CodeBlock).lang = lang;
+    
+    // Emit patch with complete block state including language
+    const codeBlock = this.currentBlock as CodeBlock;
+    diffs.push({
+      kind: "patch",
+      id: codeBlock.id,
+      block: {
+        id: codeBlock.id,
+        type: "code",
+        lang: codeBlock.lang,
+        text: codeBlock.text,
+      },
+    });
+  }
+
+  /**
+   * Emit a patch diff for the current block.
+   */
+  private emitPatch(diffs: BlockDiff[]): void {
+    if (!this.currentBlock) return;
+    
+    diffs.push({
+      kind: "patch",
+      id: this.currentBlock.id,
+      block: { ...this.currentBlock },
+    });
+  }
+
+  /**
+   * Close the current block and return to paragraph mode.
+   */
+  private closeCurrentBlock(): void {
+    this.currentBlock = null;
+    this.mode = ParseMode.Paragraph;
+    this.languageBuffer = "";
+  }
+
+  /**
+   * Reset all state to initial values.
+   */
+  private resetState(): void {
+    this.currentBlock = null;
+    this.mode = ParseMode.Paragraph;
+    this.pendingBackticks = 0;
+    this.languageBuffer = "";
   }
 }

@@ -14,7 +14,7 @@ export struct BlockView {
     } else if (this.block.type === 'code') {
       Column() {
         CodeBlockHeader({
-          language: this.block.lang || '',
+          language: (this.block as CodeBlock).lang || '',
           code: this.block.text
         })
         Divider().color('#EEEEEE').strokeWidth(1)
@@ -29,6 +29,15 @@ export struct BlockView {
       .clip(true)
       .borderRadius(12)
       .border({ width: 1, color: '#E5E5E5' })
+    } else if (this.block.type === 'inlineCode') {
+      Text(this.block.text)
+        .fontFamily('monospace')
+        .fontColor('#D32F2F')
+        .fontSize(14)
+        .backgroundColor('#F5F5F5')
+        .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+        .borderRadius(4)
+        .margin({ bottom: 8 })
     }
   }
 }
