@@ -1,4 +1,4 @@
-import { Block, BlockDiff, CodeBlock, InlineCodeBlock } from "./protocol";
+import { Block, BlockDiff, CodeBlock } from "./protocol";
 import { handleIncompleteInlineCode } from "./utils/inline-code-handler";
 import { countSingleBackticks, isPartOfTripleBacktick } from "./utils/code-block-utils";
 
@@ -78,8 +78,6 @@ export class BlockReducer {
         this.appendToCurrentBlock(char, diffs);
         break;
       case ParseMode.InlineCode:
-        this.handleInlineCode(char, diffs);
-        break;
       default :
         this.appendToParagraph(char, diffs);
     }
@@ -97,21 +95,16 @@ export class BlockReducer {
     const count = this.pendingBackticks;
     this.pendingBackticks = 0;
 
-    // Use current mode to decide what 1 or 2 backticks mean
     if (count === 1) {
-      if (this.mode === ParseMode.Paragraph) {
-        // Toggle from Paragraph to InlineCode
-        this.startInlineCode(diffs);
-      } else if (this.mode === ParseMode.InlineCode) {
-        // Toggle from InlineCode back to Paragraph (Closing backtick)
-        this.closeCurrentBlock();
+      this.mode = this.mode === ParseMode.InlineCode ? ParseMode.Paragraph : ParseMode.InlineCode;
+      this.appendToParagraph("`", diffs);
+    } else {
+      const ticks = "`".repeat(count);
+      if (this.mode === ParseMode.Code) {
+        this.appendToCurrentBlock(ticks, diffs);
       } else {
-        // Inside Code block, treat as literal text
-        this.appendToCurrentBlock("`", diffs);
+        this.appendToParagraph(ticks, diffs);
       }
-    } else if (count === 2) {
-      // Per Markdown rules, double backticks are often literal unless inside specific blocks
-      this.appendToCurrentBlock("``", diffs);
     }
   }
 
@@ -165,12 +158,11 @@ export class BlockReducer {
   close(): BlockDiff[] {
     const diffs: BlockDiff[] = [];
 
-    // Check if we ended while in an unclosed InlineCode state
-    if (this.mode === ParseMode.InlineCode && this.currentBlock) {
-      // Integration of countSingleBackticks utility within the handler
-      const repairedText = handleIncompleteInlineCode(this.currentBlock.text);
+    if (this.mode === ParseMode.InlineCode && this.currentBlock?.type === "paragraph") {
+      const originalText = this.currentBlock.text;
+      const repairedText = handleIncompleteInlineCode(originalText);
 
-      if (repairedText !== this.currentBlock.text) {
+      if (repairedText !== originalText) {
         this.currentBlock.text = repairedText;
         this.emitPatch(diffs);
       }
@@ -206,7 +198,12 @@ export class BlockReducer {
    */
   private appendToParagraph(text: string, diffs: BlockDiff[]): void {
     if (!this.currentBlock || this.currentBlock.type !== "paragraph") {
-      this.currentBlock = this.createBlock("paragraph");
+      this.currentBlock = {
+        id: this.nextBlockId++,
+        type: "paragraph",
+        text: "",
+      };
+      this.blocks.push(this.currentBlock);
       diffs.push({ kind: "append", block: this.currentBlock });
     }
 
