@@ -1,6 +1,9 @@
 import { Block, BlockDiff, CodeBlock } from "./protocol";
 import { handleIncompleteInlineCode } from "./utils/inline-code-handler";
-import { countSingleBackticks, isPartOfTripleBacktick } from "./utils/code-block-utils";
+import {
+  countSingleBackticks,
+  isPartOfTripleBacktick,
+} from "./utils/code-block-utils";
 
 /**
  * Parser states for the markdown tokenizer.
@@ -19,12 +22,12 @@ enum ParseMode {
 
 /**
  * BlockReducer - A streaming markdown parser that processes characters incrementally.
- * 
+ *
  * Supports:
  * - Paragraph blocks (default text)
  * - Fenced code blocks (```lang\ncode\n```)
  * - Inline code (`code`)
- * 
+ *
  * Design goals:
  * - Incremental parsing: processes one character at a time
  * - Immutable diffs: returns changes that can be applied to external state
@@ -47,7 +50,7 @@ export class BlockReducer {
 
   /**
    * Process a single character and return any state changes.
-   * 
+   *
    * @param char - The input character to process
    * @returns Array of diffs representing state changes (empty if no changes)
    */
@@ -78,13 +81,12 @@ export class BlockReducer {
         this.appendToCurrentBlock(char, diffs);
         break;
       case ParseMode.InlineCode:
-      default :
+      default:
         this.appendToParagraph(char, diffs);
     }
 
     return diffs;
   }
-
 
   // ==================== Private: State Handlers ====================
 
@@ -96,7 +98,10 @@ export class BlockReducer {
     this.pendingBackticks = 0;
 
     if (count === 1) {
-      this.mode = this.mode === ParseMode.InlineCode ? ParseMode.Paragraph : ParseMode.InlineCode;
+      this.mode =
+        this.mode === ParseMode.InlineCode
+          ? ParseMode.Paragraph
+          : ParseMode.InlineCode;
       this.appendToParagraph("`", diffs);
     } else {
       const ticks = "`".repeat(count);
@@ -139,26 +144,16 @@ export class BlockReducer {
     }
   }
 
-
-  /**
-   * Handles content inside `inline code`.
-   */
-  private handleInlineCode(char: string, diffs: BlockDiff[]): void {
-    if (char === "`") {
-      // Closing backtick for inline code
-      this.closeCurrentBlock();
-    } else {
-      this.appendToCurrentBlock(char, diffs);
-    }
-  }
-
   /**
    * Final repair using the handleIncompleteInlineCode logic.
    */
   close(): BlockDiff[] {
     const diffs: BlockDiff[] = [];
 
-    if (this.mode === ParseMode.InlineCode && this.currentBlock?.type === "paragraph") {
+    if (
+      this.mode === ParseMode.InlineCode &&
+      this.currentBlock?.type === "paragraph"
+    ) {
       const originalText = this.currentBlock.text;
       const repairedText = handleIncompleteInlineCode(originalText);
 
@@ -232,7 +227,7 @@ export class BlockReducer {
     if (!lang) return;
 
     (this.currentBlock as CodeBlock).lang = lang;
-    
+
     // Emit patch with complete block state including language
     const codeBlock = this.currentBlock as CodeBlock;
     diffs.push({
@@ -252,7 +247,7 @@ export class BlockReducer {
    */
   private emitPatch(diffs: BlockDiff[]): void {
     if (!this.currentBlock) return;
-    
+
     diffs.push({
       kind: "patch",
       id: this.currentBlock.id,
