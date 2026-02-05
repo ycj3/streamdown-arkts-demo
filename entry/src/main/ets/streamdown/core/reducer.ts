@@ -18,6 +18,7 @@ enum ParseMode {
   Code = 2,
   /** Inside inline code with single backtick */
   InlineCode = 3,
+  Heading = 4,
 }
 
 /**
@@ -48,6 +49,8 @@ export class BlockReducer {
   /** Buffer for collecting language identifier after ``` */
   private languageBuffer: string = "";
 
+  private headingLevel: number = 0;
+
   /**
    * Process a single character and return any state changes.
    *
@@ -57,7 +60,7 @@ export class BlockReducer {
   push(char: string): BlockDiff[] {
     const diffs: BlockDiff[] = [];
 
-    // 1. Accumulate backticks to distinguish types (`, ``, ```)
+    // Accumulate backticks to distinguish types (`, ``, ```)
     if (char === "`") {
       this.pendingBackticks++;
       // Got 3 backticks - this is a code fence
@@ -67,13 +70,51 @@ export class BlockReducer {
       return diffs;
     }
 
-    // 2. Flush pending backticks before processing the current non-backtick char
+    // Flush pending backticks before processing the current non-backtick char
     if (this.pendingBackticks > 0) {
       this.flushPendingBackticks(diffs);
     }
 
-    // 3. Normal character routing
+    if (
+      this.mode === ParseMode.Paragraph &&
+      char === "#" &&
+      (!this.currentBlock || this.currentBlock.text === "")
+    ) {
+      this.mode = ParseMode.Heading;
+      this.headingLevel = 1;
+      return diffs;
+    }
+
+    // Normal character routing
     switch (this.mode) {
+      case ParseMode.Heading:
+        if (char === "#") {
+          this.headingLevel++;
+          if (this.headingLevel > 6) {
+            this.mode = ParseMode.Paragraph;
+            this.appendToParagraph("#".repeat(this.headingLevel), diffs);
+          }
+          return diffs;
+        } else if (char === " ") {
+          this.currentBlock = {
+            id: this.nextBlockId++,
+            type: "heading",
+            level: this.headingLevel,
+            text: "",
+          };
+          this.blocks.push(this.currentBlock);
+          diffs.push({ kind: "append", block: this.currentBlock });
+
+          this.mode = ParseMode.Paragraph;
+          this.headingLevel = 0;
+          return diffs;
+        } else {
+          const hashes = "#".repeat(this.headingLevel);
+          this.headingLevel = 0;
+          this.mode = ParseMode.Paragraph;
+          this.appendToParagraph(hashes + char, diffs);
+          return diffs;
+        }
       case ParseMode.FenceStart:
         this.handleFenceStart(char, diffs);
         break;
@@ -82,7 +123,11 @@ export class BlockReducer {
         break;
       case ParseMode.InlineCode:
       default:
-        this.appendToParagraph(char, diffs);
+        if (char === "\n") {
+          this.closeCurrentBlock();
+          return diffs;
+        }
+        this.appendToCurrentBlockOrParagraph(char, diffs);
     }
 
     return diffs;
@@ -90,19 +135,26 @@ export class BlockReducer {
 
   // ==================== Private: State Handlers ====================
 
+  private appendToCurrentBlockOrParagraph(char: string, diffs: BlockDiff[]) {
+    if (this.currentBlock) {
+      this.currentBlock.text += char;
+      this.emitPatch(diffs);
+    } else {
+      this.appendToParagraph(char, diffs);
+    }
+  }
   /**
    * Refined flush logic using countSingleBackticks logic.
    */
   private flushPendingBackticks(diffs: BlockDiff[]): void {
-    const count = this.pendingBackticks;
+    const ticks = "`".repeat(this.pendingBackticks);
     this.pendingBackticks = 0;
 
-    if (count === 1) {
-      // Simply toggle the internal mode and push the marker into the text
-      this.mode = this.mode === ParseMode.InlineCode ? ParseMode.Paragraph : ParseMode.InlineCode;
-      this.appendToParagraph("`", diffs);
+    if (this.mode === ParseMode.Code) {
+      this.appendToCurrentBlock(ticks, diffs);
     } else {
-      this.appendToParagraph("``", diffs);
+      // This allows parseInlineStyles in BlockView to see the backticks
+      this.appendToCurrentBlockOrParagraph(ticks, diffs);
     }
   }
 

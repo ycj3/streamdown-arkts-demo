@@ -1,4 +1,4 @@
-import { Block, CodeBlock, TextSegment } from '../core/protocol'
+import { Block, CodeBlock, TextSegment, HeadingBlock } from '../core/protocol'
 import { CodeBlockHeader } from './code-block/CodeBlockHeader'
 import { CodeBlockBody } from './code-block/CodeBlockBody'
 import { parseInlineStyles } from '../core/utils/inline-style-parser'
@@ -14,7 +14,25 @@ export struct BlockView {
 
   build() {
     Column() {
-      if (this.block.type === 'paragraph') {
+      if (this.block.type === 'heading') {
+        Text() {
+          ForEach(this.parseSegments(this.block.text), (seg: TextSegment) => {
+            Span(seg.content)
+              .fontSize(this.getHeadingSize((this.block as HeadingBlock).level))
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1A1A1A')
+              .fontFamily(seg.isCode ? 'monospace' : 'sans-serif')
+              .fontStyle(seg.isItalic ? FontStyle.Italic : FontStyle.Normal)
+              .decoration({
+                type: seg.isStrikethrough ? TextDecorationType.LineThrough : TextDecorationType.None,
+                color: '#1A1A1A'
+              })
+              .textBackgroundStyle(seg.isCode ? { color: '#F5F5F5', radius: 4 } : undefined)
+          })
+        }
+        .width('100%')
+        .margin({ top: 12, bottom: 8 })
+      } else if (this.block.type === 'paragraph') {
         Text() {
           ForEach(this.parseSegments(this.block.text), (seg: TextSegment) => {
             Span(seg.content)
@@ -57,5 +75,10 @@ export struct BlockView {
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
+  }
+
+  getHeadingSize(level: number): number {
+    const sizes = [0, 28, 24, 20, 18, 16, 14];
+    return sizes[level] || 16;
   }
 }

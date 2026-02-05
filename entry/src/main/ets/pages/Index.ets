@@ -9,22 +9,22 @@ struct Index {
   aboutToAppear() {
 // Demo text with various inline styles
     const text = `
-StreamDown Demo
+# StreamDown Demo
 
 Welcome to **StreamDown** - A streaming markdown renderer for HarmonyOS!
 
-1. Inline Styles
+## 1. Inline Styles
 - **Bold text** with double asterisks
 - *Italic text* with single asterisks
 - ~~Strikethrough text~~ with double tildes
 - ***Bold and Italic*** combined
 
-2. Inline Code Priority
+## 2. Inline Code Priority
 - Normal \`inline code\`
 - Verbatim: \`**this is not bold**\` (Markdown standard: code shields styles)
 - Mixed: **Bold** and then \`code\`
 
-3. Fenced Code Block
+## 3. Fenced Code Block
 \`\`\`typescript
 function hello() {
   console.log("Hello StreamDown!");
@@ -44,7 +44,7 @@ Enjoy the smooth streaming experience! 🚀
       const char = text.charAt(i)
       this.stream.push(char)
       i++
-    }, 50)
+    }, 30)
   }
 
   build() {

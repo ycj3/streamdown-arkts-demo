@@ -11,6 +11,13 @@ export type CodeBlock = {
   text: string
 }
 
+export type HeadingBlock = {
+  id: number
+  type: 'heading'
+  level: number // 1 for #, 2 for ##, etc.
+  text: string
+}
+
 export class TextSegment {
   content: string = ""
   isCode: boolean = false
@@ -19,7 +26,7 @@ export class TextSegment {
   isStrikethrough: boolean = false
 }
 
-export type Block = ParagraphBlock | CodeBlock
+export type Block = ParagraphBlock | CodeBlock | HeadingBlock
 
 export type BlockDiff =
   | { kind: 'append'; block: Block }

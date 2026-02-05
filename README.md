@@ -4,6 +4,7 @@ A streaming markdown renderer demo in ArkTS for HarmonyOS
 
 ## Markdown features
 
+- [x] Heading
 - [x] Paragraphs
 - [x] Code Block with triple backticks
   - [x] copy code
