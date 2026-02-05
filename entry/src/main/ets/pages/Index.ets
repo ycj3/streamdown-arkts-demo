@@ -1,4 +1,4 @@
-import { StreamDown, createStreamDown } from '@ycj3/streamdown'
+import { StreamDown, createStreamDown } from 'streamdown'
 
 
 @Entry

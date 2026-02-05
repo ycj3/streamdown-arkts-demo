@@ -23,13 +23,10 @@ export struct CopyButton {
   }
 
   build() {
-    Button() {
-      Image($r('app.media.ic_copy'))
-        .width(16)
-        .height(16)
-        .fillColor(this.isCopied ? Color.Green : '#666666')
-    }
-    .backgroundColor(Color.Transparent)
-    .onClick(() => this.copyToClipboard())
+    Button(this.isCopied ? '✓' : 'Copy')
+      .fontSize(12)
+      .fontColor(this.isCopied ? Color.Green : '#666666')
+      .backgroundColor(Color.Transparent)
+      .onClick(() => this.copyToClipboard())
   }
 }
