@@ -11,7 +11,7 @@
     ".": {
       "name": "",
       "dependencies": {
-        "streamdown": {
+        "@ycj3/streamdown": {
           "specifier": "file:streamdown",
           "version": "file:streamdown"
         }
@@ -32,7 +32,7 @@
     "entry": {
       "name": "entry",
       "dependencies": {
-        "streamdown": {
+        "@ycj3/streamdown": {
           "specifier": "file:streamdown",
           "version": "file:streamdown"
         }
@@ -50,7 +50,7 @@
     }
   },
   "packages": {
-    "streamdown@file:streamdown": {
+    "@ycj3/streamdown@file:streamdown": {
       "storePath": "streamdown",
       "dependencies": {},
       "dynamicDependencies": {},
