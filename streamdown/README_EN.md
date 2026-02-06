@@ -26,7 +26,18 @@ A streaming markdown renderer for HarmonyOS ArkTS, designed for real-time LLM ch
 
 ## Installation
 
-### Local HAR Module
+### Option 1: ohpm install (Recommended)
+
+```bash
+ohpm install @ycj3/streamdown
+```
+
+Or in DevEco Studio:
+1. Open `entry/oh-package.json5`
+2. Click the `+` button next to dependencies
+3. Search for `@ycj3/streamdown` and add it
+
+### Option 2: Local HAR Module (Development)
 
 Add to your project's `entry/oh-package.json5`:
 
