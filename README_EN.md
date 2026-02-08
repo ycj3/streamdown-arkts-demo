@@ -62,7 +62,7 @@
 
 - [x] Unordered lists (`- item`)
 - [x] Ordered lists (`1. item`)
-- [ ] Task lists (`- [ ] task`)
+- [x] Task lists (`- [ ] task`)
 - [ ] Blockquotes (`> quote`)
 - [ ] Horizontal rules (`---`)
 - [ ] Link rendering (`[text](url)`)

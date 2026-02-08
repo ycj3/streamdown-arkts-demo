@@ -1,4 +1,4 @@
-import { Block, CodeBlock, TextSegment, HeadingBlock, ListItemBlock, OrderedListItemBlock } from '../core/protocol'
+import { Block, CodeBlock, TextSegment, HeadingBlock, ListItemBlock, OrderedListItemBlock, TaskListItemBlock } from '../core/protocol'
 import { CodeBlockHeader } from './code-block/CodeBlockHeader'
 import { CodeBlockBody } from './code-block/CodeBlockBody'
 import { parseInlineStyles } from '../core/utils/inline-style-parser'
@@ -105,6 +105,35 @@ export struct BlockView {
           // Number (e.g., "1.")
           Text((this.block as OrderedListItemBlock).number + '.')
             .fontSize(16)
+            .fontColor('#333333')
+            .margin({ right: 8 })
+          
+          // List item content with inline styles
+          Text() {
+            ForEach(this.parseSegments(this.block.text), (seg: TextSegment) => {
+              Span(seg.content)
+                .fontSize(16)
+                .fontFamily(seg.isCode ? 'monospace' : 'sans-serif')
+                .fontColor(seg.isCode ? '#D32F2F' : '#333333')
+                .fontWeight(seg.isBold ? FontWeight.Bold : FontWeight.Normal)
+                .fontStyle(seg.isItalic ? FontStyle.Italic : FontStyle.Normal)
+                .decoration({
+                  type: seg.isStrikethrough ? TextDecorationType.LineThrough : TextDecorationType.None,
+                  color: seg.isCode ? '#D32F2F' : '#333333'
+                })
+                .textBackgroundStyle(seg.isCode ? { color: '#F5F5F5', radius: 4 } : undefined)
+            })
+          }
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .margin({ bottom: 4 })
+        .alignItems(VerticalAlign.Top)
+      } else if (this.block.type === 'taskListItem') {
+        Row() {
+          // Checkbox
+          Text((this.block as TaskListItemBlock).checked ? '☑' : '☐')
+            .fontSize(18)
             .fontColor('#333333')
             .margin({ right: 8 })
           

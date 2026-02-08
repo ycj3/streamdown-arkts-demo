@@ -278,6 +278,7 @@ export class BlockReducer {
     this.context.languageBuffer = "";
     this.context.headingLevel = 0;
     this.context.orderedListNumber = 0;
+    this.context.taskListChecked = null;
   }
 
   /**

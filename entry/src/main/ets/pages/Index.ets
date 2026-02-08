@@ -35,7 +35,12 @@ Welcome to **StreamDown** - A streaming markdown renderer for HarmonyOS!
 2. Second ordered item with **bold**
 3. Third ordered item with \`code\`
 
-## 5. Fenced Code Block
+## 5. Task Lists
+- [ ] Unchecked task item
+- [x] Checked task item
+- [X] Another checked task
+
+## 6. Fenced Code Block
 \`\`\`typescript
 function hello() {
   console.log("Hello StreamDown!");

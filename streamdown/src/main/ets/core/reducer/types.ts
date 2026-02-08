@@ -41,6 +41,8 @@ export interface ReducerContext {
   headingLevel: number;
   /** Ordered list item number buffer */
   orderedListNumber: number;
+  /** Task list parsing state buffer (null, string state, or boolean for confirmed state) */
+  taskListChecked: boolean | string | null;
 }
 
 /**
@@ -97,5 +99,6 @@ export function createInitialContext(): ReducerContext {
     languageBuffer: "",
     headingLevel: 0,
     orderedListNumber: 0,
+    taskListChecked: null,
   };
 }
