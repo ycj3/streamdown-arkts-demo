@@ -44,15 +44,29 @@ export type OrderedListItemBlock = {
   text: string
 }
 
+export type BlockquoteBlock = {
+  id: number
+  type: 'blockquote'
+  text: string
+}
+
+export type HorizontalRuleBlock = {
+  id: number
+  type: 'horizontalRule'
+  text: ''  // Empty text, for type compatibility
+}
+
 export class TextSegment {
   content: string = ""
   isCode: boolean = false
   isBold: boolean = false
   isItalic: boolean = false
   isStrikethrough: boolean = false
+  isLink: boolean = false
+  linkUrl: string = ""
 }
 
-export type Block = ParagraphBlock | CodeBlock | HeadingBlock | InlineCodeBlock | ListItemBlock | OrderedListItemBlock | TaskListItemBlock
+export type Block = ParagraphBlock | CodeBlock | HeadingBlock | InlineCodeBlock | ListItemBlock | OrderedListItemBlock | TaskListItemBlock | BlockquoteBlock | HorizontalRuleBlock
 
 export type BlockDiff =
   | { kind: 'append'; block: Block }

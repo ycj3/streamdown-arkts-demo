@@ -40,7 +40,16 @@ Welcome to **StreamDown** - A streaming markdown renderer for HarmonyOS!
 - [x] Checked task item
 - [X] Another checked task
 
-## 6. Fenced Code Block
+## 6. Blockquotes
+> This is a blockquote
+> With multiple lines
+> And **bold** text inside
+
+## 7. Horizontal Rule
+
+---
+
+## 8. Fenced Code Block
 \`\`\`typescript
 function hello() {
   console.log("Hello StreamDown!");

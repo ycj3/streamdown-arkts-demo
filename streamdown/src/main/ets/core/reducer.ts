@@ -9,6 +9,8 @@ export {
   InlineCodeReducer,
   ListReducer,
   OrderedListReducer,
+  BlockquoteReducer,
+  HorizontalRuleReducer,
 } from "./reducer/index";
 
 export type {

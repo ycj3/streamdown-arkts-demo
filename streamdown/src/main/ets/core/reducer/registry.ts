@@ -1,6 +1,8 @@
 import { IReducer, ParseMode } from "./types";
 import { ListReducer } from "./reducers/ListReducer";
 import { OrderedListReducer } from "./reducers/OrderedListReducer";
+import { BlockquoteReducer } from "./reducers/BlockquoteReducer";
+import { HorizontalRuleReducer } from "./reducers/HorizontalRuleReducer";
 
 /**
  * Reducer registry
@@ -79,7 +81,9 @@ export function createDefaultRegistry(
   codeFenceReducer: IReducer,
   inlineCodeReducer: IReducer,
   listReducer: IReducer,
-  orderedListReducer: IReducer
+  orderedListReducer: IReducer,
+  blockquoteReducer: IReducer,
+  horizontalRuleReducer: IReducer
 ): ReducerRegistry {
   const registry = new ReducerRegistry();
 
@@ -91,6 +95,8 @@ export function createDefaultRegistry(
   registry.register(ParseMode.InlineCode, inlineCodeReducer);
   registry.register(ParseMode.List, listReducer);
   registry.register(ParseMode.OrderedList, orderedListReducer);
+  registry.register(ParseMode.Blockquote, blockquoteReducer);
+  registry.register(ParseMode.HorizontalRule, horizontalRuleReducer);
 
   // Register triggers (sorted by priority)
   // Note: trigger order is important
@@ -99,6 +105,8 @@ export function createDefaultRegistry(
   registry.registerTrigger(codeFenceReducer);
   registry.registerTrigger(listReducer);
   registry.registerTrigger(orderedListReducer);
+  registry.registerTrigger(blockquoteReducer);
+  registry.registerTrigger(horizontalRuleReducer);
 
   return registry;
 }

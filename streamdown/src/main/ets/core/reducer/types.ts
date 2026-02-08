@@ -19,6 +19,10 @@ export enum ParseMode {
   List = "list",
   /** Ordered list item */
   OrderedList = "orderedList",
+  /** Blockquote */
+  Blockquote = "blockquote",
+  /** Horizontal rule */
+  HorizontalRule = "horizontalRule",
 }
 
 /**
@@ -43,6 +47,8 @@ export interface ReducerContext {
   orderedListNumber: number;
   /** Task list parsing state buffer (null, string state, or boolean for confirmed state) */
   taskListChecked: boolean | string | null;
+  /** Horizontal rule dash counter */
+  hrDashCount: number;
 }
 
 /**
@@ -100,5 +106,6 @@ export function createInitialContext(): ReducerContext {
     headingLevel: 0,
     orderedListNumber: 0,
     taskListChecked: null,
+    hrDashCount: 0,
   };
 }

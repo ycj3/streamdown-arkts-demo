@@ -8,6 +8,8 @@ import {
   InlineCodeReducer,
   ListReducer,
   OrderedListReducer,
+  BlockquoteReducer,
+  HorizontalRuleReducer,
 } from "./reducers";
 import { ReducerRegistry, createDefaultRegistry } from "./registry";
 import {
@@ -27,6 +29,8 @@ export {
   InlineCodeReducer,
   ListReducer,
   OrderedListReducer,
+  BlockquoteReducer,
+  HorizontalRuleReducer,
 } from "./reducers";
 
 /**
@@ -61,6 +65,8 @@ export class BlockReducer {
   private inlineCodeReducer: InlineCodeReducer;
   private listReducer: ListReducer;
   private orderedListReducer: OrderedListReducer;
+  private blockquoteReducer: BlockquoteReducer;
+  private horizontalRuleReducer: HorizontalRuleReducer;
 
   constructor(registry?: ReducerRegistry) {
     // Initialize context
@@ -72,6 +78,8 @@ export class BlockReducer {
     this.inlineCodeReducer = new InlineCodeReducer();
     this.listReducer = new ListReducer();
     this.orderedListReducer = new OrderedListReducer();
+    this.blockquoteReducer = new BlockquoteReducer();
+    this.horizontalRuleReducer = new HorizontalRuleReducer();
     const paragraphReducer = new ParagraphReducer();
 
     // Use provided registry or create default
@@ -83,7 +91,9 @@ export class BlockReducer {
         this.codeFenceReducer,
         this.inlineCodeReducer,
         this.listReducer,
-        this.orderedListReducer
+        this.orderedListReducer,
+        this.blockquoteReducer,
+        this.horizontalRuleReducer
       );
   }
 
@@ -250,14 +260,24 @@ export class BlockReducer {
       return this.headingReducer.startHeading(this.context);
     }
 
-    // Check list trigger (only if not a heading start)
+    // Check horizontal rule trigger (before list, since --- could be confused with - list)
+    if (this.horizontalRuleReducer.canStartHorizontalRule(char, this.context)) {
+      return this.horizontalRuleReducer.startHorizontalRule(this.context, char);
+    }
+
+    // Check list trigger
     if (this.listReducer.canStartList(char, this.context)) {
       return this.listReducer.startList(this.context);
     }
 
-    // Check ordered list trigger (only if not a heading/list start)
+    // Check ordered list trigger
     if (this.orderedListReducer.canStartOrderedList(char, this.context)) {
       return this.orderedListReducer.startOrderedList(this.context, char);
+    }
+
+    // Check blockquote trigger
+    if (this.blockquoteReducer.canStartBlockquote(char, this.context)) {
+      return this.blockquoteReducer.startBlockquote(this.context);
     }
 
     // Check inline code trigger
@@ -279,6 +299,7 @@ export class BlockReducer {
     this.context.headingLevel = 0;
     this.context.orderedListNumber = 0;
     this.context.taskListChecked = null;
+    this.context.hrDashCount = 0;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Block, CodeBlock, TextSegment, HeadingBlock, ListItemBlock, OrderedListItemBlock, TaskListItemBlock } from '../core/protocol'
+import { Block, CodeBlock, TextSegment, HeadingBlock, ListItemBlock, OrderedListItemBlock, TaskListItemBlock, BlockquoteBlock, HorizontalRuleBlock } from '../core/protocol'
 import { CodeBlockHeader } from './code-block/CodeBlockHeader'
 import { CodeBlockBody } from './code-block/CodeBlockBody'
 import { parseInlineStyles } from '../core/utils/inline-style-parser'
@@ -158,6 +158,41 @@ export struct BlockView {
         .width('100%')
         .margin({ bottom: 4 })
         .alignItems(VerticalAlign.Top)
+      } else if (this.block.type === 'blockquote') {
+        Column() {
+          // Blockquote content with inline styles
+          Text() {
+            ForEach(this.parseSegments(this.block.text), (seg: TextSegment) => {
+              Span(seg.content)
+                .fontSize(16)
+                .fontFamily(seg.isCode ? 'monospace' : 'sans-serif')
+                .fontColor(seg.isCode ? '#D32F2F' : '#666666')  // Slightly lighter color for quotes
+                .fontWeight(seg.isBold ? FontWeight.Bold : FontWeight.Normal)
+                .fontStyle(seg.isItalic ? FontStyle.Italic : FontStyle.Normal)
+                .decoration({
+                  type: seg.isStrikethrough ? TextDecorationType.LineThrough : TextDecorationType.None,
+                  color: seg.isCode ? '#D32F2F' : '#666666'
+                })
+                .textBackgroundStyle(seg.isCode ? { color: '#F5F5F5', radius: 4 } : undefined)
+            })
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .margin({ bottom: 8, left: 4 })
+        .padding({ left: 12, top: 8, bottom: 8 })
+        .backgroundColor('#F9F9F9')
+        .borderRadius(4)
+        .border({
+          width: { left: 4 },
+          color: '#E0E0E0'
+        })
+      } else if (this.block.type === 'horizontalRule') {
+        Divider()
+          .color('#E0E0E0')
+          .strokeWidth(1)
+          .width('100%')
+          .margin({ top: 16, bottom: 16 })
       }
     }
     .width('100%')
