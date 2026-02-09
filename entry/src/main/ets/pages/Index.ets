@@ -13,7 +13,7 @@ struct Index {
 
 Welcome to **StreamDown** - A streaming markdown renderer for HarmonyOS!
 
-Visit our [GitHub repository](https://github.com/ycj3/streamdown-arkts-demo) for more info.
+Visit our [GitHub repository](https://github.com/ycj3/streaming-markdown-demo) for more info.
 
 ## 1. Inline Styles
 - **Bold text** with double asterisks
