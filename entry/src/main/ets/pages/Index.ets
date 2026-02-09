@@ -1,10 +1,10 @@
-import { StreamDown, createStreamDown } from '@ycj3/streamdown'
+import { StreamingMarkdown, createStreamingMarkdown } from '@ycj3/streaming-markdown'
 
 
 @Entry
 @Component
 struct Index {
-  private stream = createStreamDown()
+  private stream = createStreamingMarkdown()
 
   aboutToAppear() {
 // Demo text with various inline styles
@@ -77,7 +77,7 @@ Enjoy the smooth streaming experience! 🚀
   build() {
     Scroll() {
       Column() {
-        StreamDown({
+        StreamingMarkdown({
           controller: this.stream
         })
       }
