@@ -1,14 +1,16 @@
-import { StreamingMarkdown, createStreamingMarkdown } from '@ycj3/streaming-markdown'
-
+import { 
+  StreamingMarkdown, 
+  StreamingMode 
+} from '@ycj3/streaming-markdown'
 
 @Entry
 @Component
 struct Index {
-  private stream = createStreamingMarkdown()
+  @State currentMode: StreamingMode = 'char'
+  // Key to force re-creation of StreamingMarkdown
+  @State contentKey: number = 0
 
-  aboutToAppear() {
-// Demo text with various inline styles
-    const text = `
+  private demoText: string = `
 # StreamingMarkdown Demo
 
 Welcome to **StreamingMarkdown** - A streaming markdown renderer for HarmonyOS!
@@ -60,28 +62,81 @@ function hello() {
 
 Enjoy the smooth streaming experience! 🚀
 `
-    let i = 0
 
-    const timer = setInterval(() => {
-      if (i >= text.length) {
-        clearInterval(timer)
-        this.stream.close()
-        return
-      }
-      const char = text.charAt(i)
-      this.stream.push(char)
-      i++
-    }, 30)
+  @Builder
+  ModeButton(mode: StreamingMode, label: string) {
+    Button(label)
+      .fontSize(14)
+      .height(36)
+      .backgroundColor(this.currentMode === mode ? '#1976D2' : '#E0E0E0')
+      .fontColor(this.currentMode === mode ? '#FFFFFF' : '#333333')
+      .onClick(() => {
+        if (this.currentMode !== mode) {
+          this.currentMode = mode
+          // Force re-render with new mode
+          this.contentKey++
+        }
+      })
   }
 
   build() {
-    Scroll() {
+    Column() {
+      // Header with mode selection
       Column() {
-        StreamingMarkdown({
-          controller: this.stream
-        })
+        Text('Streaming Mode')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .margin({ bottom: 12 })
+
+        Row({ space: 8 }) {
+          this.ModeButton('char', 'Char')
+          this.ModeButton('word', 'Word')
+          this.ModeButton('chunk', 'Chunk')
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+
+        Text(`Current: ${this.currentMode} by ${this.currentMode}`)
+          .fontSize(12)
+          .fontColor('#666666')
+          .margin({ top: 8 })
       }
+      .width('100%')
       .padding(16)
+      .backgroundColor('#F5F5F5')
+
+      // Content - Use ForEach with key to force re-creation
+      Scroll() {
+        Column() {
+          // Use ForEach with unique key to force component re-creation
+          ForEach([this.contentKey], (key: number) => {
+            StreamingMarkdown({
+              text: this.demoText,
+              mode: this.currentMode,
+              interval: 30,
+              onComplete: () => {
+                console.log('Streaming completed!')
+              }
+            })
+          }, (key: number) => key.toString())
+        }
+        .padding(16)
+        .width('100%')
+      }
+      .layoutWeight(1)
+      .width('100%')
+
+      // Replay button
+      Button('Replay')
+        .fontSize(16)
+        .width(120)
+        .height(44)
+        .margin(16)
+        .backgroundColor('#4CAF50')
+        .onClick(() => {
+          // Increment key to force ForEach to re-create the component
+          this.contentKey++
+        })
     }
     .width('100%')
     .height('100%')
