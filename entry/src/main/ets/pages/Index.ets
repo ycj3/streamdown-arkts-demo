@@ -3,14 +3,7 @@ import {
   StreamingMode 
 } from '@ycj3/streaming-markdown'
 
-@Entry
-@Component
-struct Index {
-  @State currentMode: StreamingMode = 'char'
-  // Key to force re-creation of StreamingMarkdown
-  @State contentKey: number = 0
-
-  private demoText: string = `
+const fullMarkdownText: string = `
 # StreamingMarkdown Demo
 
 Welcome to **StreamingMarkdown** - A streaming markdown renderer for HarmonyOS!
@@ -60,8 +53,34 @@ function hello() {
 }
 \`\`\`
 
+## 9. Tables
+
+| Syntax | Description |
+|:--------|:------:|
+| Header | Title |
+| Paragraph | Text |
+
 Enjoy the smooth streaming experience! 🚀
 `
+
+const TestCases: Record<string, string> = {
+  'Table Basic': `| Header 1 | Header 2 |\n|---|---|\n| Row 1 Col 1 | Row 1 Col 2 |\n| Row 2 Col 1 | Row 2 Col 2 |`,
+  'Table Alignment': `| Left | Center | Right |\n|:---|:---:|---:|\n| L-content | C-content | R-content |`,
+  'Full markdown': fullMarkdownText,
+}
+
+@Entry
+@Component
+struct Index {
+  @State currentMode: StreamingMode = 'char'
+  @State contentKey: number = 0
+  @State activeText: string = TestCases['Table Basic']
+
+  // Helper to trigger re-render
+  private refresh(text: string) {
+    this.activeText = text
+    this.contentKey++
+  }
 
   @Builder
   ModeButton(mode: StreamingMode, label: string) {
@@ -105,13 +124,32 @@ Enjoy the smooth streaming experience! 🚀
       .padding(16)
       .backgroundColor('#F5F5F5')
 
+      Divider().margin({ top: 15, bottom: 15 })
+      // Feature Selection Row
+      Text("Feature Scenarios").fontSize(14).fontColor('#666').margin({ bottom: 8 })
+      Scroll() {
+        Row({ space: 10 }) {
+          ForEach(Object.keys(TestCases), (name: string) => {
+            Button(name)
+              .fontSize(12)
+              .height(32)
+              .backgroundColor(this.activeText === TestCases[name] ? '#007DFF' : '#E5E5E5')
+              .fontColor(this.activeText === TestCases[name] ? '#FFFFFF' : '#333333')
+              .onClick(() => this.refresh(TestCases[name]))
+          })
+        }
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+
       // Content - Use ForEach with key to force re-creation
       Scroll() {
         Column() {
           // Use ForEach with unique key to force component re-creation
           ForEach([this.contentKey], (key: number) => {
             StreamingMarkdown({
-              text: this.demoText,
+              text: this.activeText,
               mode: this.currentMode,
               interval: 30,
               onComplete: () => {
